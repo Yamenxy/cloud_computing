@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications History</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tbody tr {
+            transition: background-color 0.3s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .notification-body {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .data-payload {
+            background: #e7f3ff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #0056b3;
+            word-break: break-all;
+        }
+
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        .no-data-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            background: #28a745;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📬 Notifications History</h1>
+            <p>Real-time Firebase Cloud Messaging Notifications</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total Notifications</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="todayCount">0</div>
+                <div class="stat-label">Today</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="lastUpdate">--:--</div>
+                <div class="stat-label">Last Update</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">
+                <p>🔄 Loading notifications...</p>
+            </div>
+            <div id="noData" class="no-data" style="display: none;">
+                <div class="no-data-icon">📭</div>
+                <h2>No Notifications Yet</h2>
+                <p>Send a test message from Firebase Console to see it here!</p>
+            </div>
+            <table id="notificationsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Notification</th>
+                        <th>Data Payload</th>
+                        <th>Received Time</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadNotifications()">🔄 Refresh</button>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkMnOUu-DjVNaFmAwTwa7LMsE1jVrl4fw",
+            authDomain: "cloud-comuting-ccc74.firebaseapp.com",
+            projectId: "cloud-comuting-ccc74",
+            storageBucket: "cloud-comuting-ccc74.firebasestorage.app",
+            messagingSenderId: "571964573753",
+            appId: "1:571964573753:web:YOUR_WEB_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Listen to notifications in real-time
+        const q = query(collection(db, 'notifications'), orderBy('receivedTime', 'desc'));
+        
+        onSnapshot(q, (snapshot) => {
+            const notifications = [];
+            snapshot.forEach((doc) => {
+                notifications.push({ id: doc.id, ...doc.data() });
+            });
+
+            displayNotifications(notifications);
+        }, (error) => {
+            console.error('Error loading notifications:', error);
+            document.getElementById('loading').innerHTML = '<p style="color: red;">❌ Error loading notifications. Check console.</p>';
+        });
+
+        function displayNotifications(notifications) {
+            const loading = document.getElementById('loading');
+            const noData = document.getElementById('noData');
+            const table = document.getElementById('notificationsTable');
+            const tableBody = document.getElementById('tableBody');
+
+            loading.style.display = 'none';
+
+            if (notifications.length === 0) {
+                noData.style.display = 'block';
+                table.style.display = 'none';
+                return;
+            }
+
+            noData.style.display = 'none';
+            table.style.display = 'table';
+
+            // Update stats
+            document.getElementById('totalCount').textContent = notifications.length;
+            
+            const today = new Date().toDateString();
+            const todayCount = notifications.filter(n => {
+                const notifDate = new Date(n.receivedTime).toDateString();
+                return notifDate === today;
+            }).length;
+            document.getElementById('todayCount').textContent = todayCount;
+            
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = 
+                now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            // Build table
+            tableBody.innerHTML = '';
+            notifications.forEach((notif, index) => {
+                const row = document.createElement('tr');
+                
+                const title = notif.notification?.title || 'No Title';
+                const body = notif.notification?.body || 'No Body';
+                const dataPayload = JSON.stringify(notif.data || {}, null, 2);
+                const receivedTime = new Date(notif.receivedTime).toLocaleString();
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>
+                        <div class="notification-title">${escapeHtml(title)}</div>
+                        <div class="notification-body">${escapeHtml(body)}</div>
+                    </td>
+                    <td>
+                        <div class="data-payload">${escapeHtml(dataPayload)}</div>
+                    </td>
+                    <td class="timestamp">${receivedTime}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Make loadNotifications available globally
+        window.loadNotifications = function() {
+            location.reload();
+        };
+    </script>
+</body>
+</html>
