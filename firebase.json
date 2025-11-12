@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": "web",
     "ignore": [
@@ -7,6 +10,10 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/",
+        "destination": "/home.html"
+      },
       {
         "source": "/notifications",
         "destination": "/notifications.html"

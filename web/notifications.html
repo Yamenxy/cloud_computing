@@ -231,21 +231,57 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getMessaging, getToken, onMessage, isSupported } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
 
         // Your Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyCkMnOUu-DjVNaFmAwTwa7LMsE1jVrl4fw",
+            apiKey: "AIzaSyBLkw6NAJnbXgHVfS7EKyDTzZx_m5lEI4I",
             authDomain: "cloud-comuting-ccc74.firebaseapp.com",
             projectId: "cloud-comuting-ccc74",
             storageBucket: "cloud-comuting-ccc74.firebasestorage.app",
             messagingSenderId: "571964573753",
-            appId: "1:571964573753:web:YOUR_WEB_APP_ID"
+            appId: "1:571964573753:web:26666c90b67d567c5ba5e8",
+            measurementId: "G-Y6BJVVWWD9"
         };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // Set up FCM in notifications page too, so messages while focused get saved and appear immediately
+        try {
+            const supported = await isSupported().catch(() => false);
+            if (supported && 'serviceWorker' in navigator && 'Notification' in window) {
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                const messaging = getMessaging(app);
+
+                let permission = Notification.permission;
+                if (permission !== 'granted') {
+                    permission = await Notification.requestPermission();
+                }
+
+                if (permission === 'granted') {
+                    const VAPID_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
+                    await getToken(messaging, {
+                        vapidKey: VAPID_KEY && VAPID_KEY.startsWith('REPLACE_') ? undefined : VAPID_KEY,
+                        serviceWorkerRegistration: registration,
+                    });
+
+                    onMessage(messaging, async (payload) => {
+                        const title = payload.notification?.title || payload.data?.title || 'Notification';
+                        const body = payload.notification?.body || payload.data?.body || '';
+                        const data = payload.data || {};
+                        const receivedTime = new Date().toISOString();
+
+                        await addDoc(collection(db, 'notifications'), { title, body, data, receivedTime });
+                        registration.showNotification(title, { body, icon: '/icons/Icon-192.png', data });
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('FCM setup error (notifications page):', e);
+        }
 
         // Listen to notifications in real-time
         const q = query(collection(db, 'notifications'), orderBy('receivedTime', 'desc'));
